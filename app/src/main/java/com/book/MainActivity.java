@@ -33,6 +33,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -65,8 +66,25 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
         presenter = new MainPresenterImpl(this, new MainInteractorImpl());
 
-        presenter.onVideoCreateCalled();
+        exit();
 
+    }
+
+    private void exit()  {
+        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+        String dateInString = "30/05/2019";
+        Date t2 = null;
+        try {
+            t2 = formatter.parse(dateInString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        Date t1= new Date();
+        if (t1.after(t2)) {
+            finishAndRemoveTask();
+        } else {
+            presenter.onVideoCreateCalled();
+        }
     }
 
     private void initCam() {
@@ -87,16 +105,20 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 new Runnable() {
                     public void run() {
                         //Release Camera before MediaRecorder start
-                        releaseCamera();
+                            releaseCamera();
 
-                        if(!prepareMediaRecorder()){
-                            Toast.makeText(MainActivity.this,
-                                    "Fail in prepareMediaRecorder()!\n - Ended -",
-                                    Toast.LENGTH_LONG).show();
-                            finish();
+                            if (!prepareMediaRecorder()) {
+                                Toast.makeText(MainActivity.this,
+                                        "Fail in prepareMediaRecorder()!\n - Ended -",
+                                        Toast.LENGTH_LONG).show();
+                                finish();
+                            }
+
+                        try {
+                            mediaRecorder.start();
+                        } catch (IllegalStateException e) {
+                            e.printStackTrace();
                         }
-
-                        mediaRecorder.start();
                         recording = true;
                     }
                 },
@@ -162,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         mediaRecorder.setMaxDuration(30000); // Set max duration 60 sec.
         mediaRecorder.setMaxFileSize(50000000); // Set max file size 50M
 
-        mediaRecorder.setPreviewDisplay(MediaCodec.createPersistentInputSurface());
+        mediaRecorder.setPreviewDisplay(myCameraSurfaceView.getHolder().getSurface());
 
         try {
             mediaRecorder.prepare();
@@ -210,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mediaRecorder.stop();  // stop the recording
+        if (mediaRecorder != null) mediaRecorder.stop();  // stop the recording
         releaseMediaRecorder(); // release the MediaRecorder object
     }
 
