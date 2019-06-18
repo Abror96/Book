@@ -1,13 +1,17 @@
 package com.book;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
@@ -17,11 +21,18 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.util.Size;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.book.databinding.ActivityMainBinding;
@@ -35,8 +46,11 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -52,9 +66,22 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     private int videoId = -1;
     private MainContract.Presenter presenter;
     private String filePath = "";
+    private Camera.Parameters camParam;
 
-    SurfaceHolder surfaceHolder;
+    private String values_keyword=null;
+    private String iso_keyword=null;
+    private SurfaceHolder surfaceHolder;
     boolean recording;
+    private int[] qualities = {
+            CamcorderProfile.QUALITY_2160P,
+            CamcorderProfile.QUALITY_1080P,
+            CamcorderProfile.QUALITY_720P,
+            CamcorderProfile.QUALITY_480P
+    };
+    public static ArrayList<String> iso_values_arr;
+    private int duration = 30000;
+    private int default_quality = CamcorderProfile.QUALITY_480P;
+    private String default_iso = "auto";
 
     private static final int REQUEST_CAMERA_PERMISSION = 200;
 
@@ -62,6 +89,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        setSupportActionBar(binding.toolbar);
+
         requestPermissions();
 
         presenter = new MainPresenterImpl(this, new MainInteractorImpl());
@@ -72,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     private void exit()  {
         SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
-        String dateInString = "30/05/2019";
+        String dateInString = "30/06/2019";
         Date t2 = null;
         try {
             t2 = formatter.parse(dateInString);
@@ -97,8 +126,15 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                     Toast.LENGTH_LONG).show();
         }
 
+        camParam = myCamera.getParameters();
+        getIsoApiKey(camParam.flatten());
+        String supportedIsoValues = camParam.get(values_keyword);
+        iso_values_arr = new ArrayList<>(Arrays.asList(supportedIsoValues.split(",")));
+
+
+
         myCameraSurfaceView = new MyCameraSurfaceView(this, myCamera);
-        FrameLayout myCameraPreview = (FrameLayout)findViewById(R.id.CameraView);
+        FrameLayout myCameraPreview = findViewById(R.id.CameraView);
         myCameraPreview.addView(myCameraSurfaceView);
 
         new android.os.Handler().postDelayed(
@@ -124,6 +160,67 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 },
                 0);
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.setting:
+                mediaRecorder.stop();  // stop the recording
+                releaseMediaRecorder();
+                releaseCamera();
+                startActivityForResult(new Intent(this, SettingsActivity.class), 3403);
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 3403 && data != null) {
+            if (data.getExtras() != null ) {
+                String iso = data.getStringExtra("iso");
+                int quality = data.getExtras().getInt("quality");
+
+                this.duration = data.getExtras().getInt("duration");
+                default_quality = qualities[quality];
+                default_iso = iso;
+
+
+                releaseCamera();
+                releaseMediaRecorder();
+                initCam();
+            }
+        }
+    }
+
+    private void getIsoApiKey(String flat) {
+        if(flat.contains("iso-values")) {
+            // most used keywords
+            values_keyword="iso-values";
+            iso_keyword="iso";
+        } else if(flat.contains("iso-mode-values")) {
+            // google galaxy nexus keywords
+            values_keyword="iso-mode-values";
+            iso_keyword="iso";
+        } else if(flat.contains("iso-speed-values")) {
+            // micromax a101 keywords
+            values_keyword="iso-speed-values";
+            iso_keyword="iso-speed";
+        } else if(flat.contains("nv-picture-iso-values")) {
+            // LG dual p990 keywords
+            values_keyword="nv-picture-iso-values";
+            iso_keyword="nv-picture-iso";
+        }
+    }
+
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -165,13 +262,16 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         myCamera.setDisplayOrientation(90);
         mediaRecorder.setOrientationHint(90);
 
+        camParam.set(iso_keyword, default_iso);
+        myCamera.setParameters(camParam);
+
         myCamera.unlock();
         mediaRecorder.setCamera(myCamera);
 
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
 
-        mediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_480P));
+        mediaRecorder.setProfile(CamcorderProfile.get(default_quality));
 
         File file_dir = new File(Environment.getExternalStorageDirectory() + "/video_files");
         if (!file_dir.exists()) {
@@ -181,7 +281,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         filePath = output_file.getAbsolutePath();
         Log.d("LOGGERR", "prepareMediaRecorder: " + filePath);
         mediaRecorder.setOutputFile(filePath);
-        mediaRecorder.setMaxDuration(30000); // Set max duration 60 sec.
+        mediaRecorder.setMaxDuration(duration); // Set max duration 60 sec.
         mediaRecorder.setMaxFileSize(50000000); // Set max file size 50M
 
         mediaRecorder.setPreviewDisplay(myCameraSurfaceView.getHolder().getSurface());
@@ -253,6 +353,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         }
     }
 
+
     private void requestPermissions() {
 
         // check realtime permission if run higher api 23
@@ -266,10 +367,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             }, REQUEST_CAMERA_PERMISSION);
             return;
         }
-    }
-
-    private String getCurrentDate() {
-        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
     }
 
     @Override
