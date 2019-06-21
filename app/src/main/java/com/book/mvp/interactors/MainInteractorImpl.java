@@ -50,6 +50,8 @@ public class MainInteractorImpl implements MainContract.Interactor {
                 video_general_id
         );
 
+        Log.d(TAG, "addVideo: new video adding");
+
         addResearch.enqueue(new Callback<AddingVideoResponse>() {
             @Override
             public void onResponse(Call<AddingVideoResponse> call, Response<AddingVideoResponse> response) {

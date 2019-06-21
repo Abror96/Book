@@ -10,9 +10,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.MediaCodec;
@@ -26,6 +28,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -84,6 +87,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     private String default_iso = "auto";
 
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+    private int[][] coords = {
+            {-596, -748, -296, -448}, // top left
+            {440, -748, 740, -448}, // top right
+            {-596, 371, -296, 671}, // bottom left
+            {440, 371, 740, 671}, // bottom right
+            {-126, -242, 174, 58} // center
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,19 +193,26 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 3403 && data != null) {
-            if (data.getExtras() != null ) {
-                String iso = data.getStringExtra("iso");
-                int quality = data.getExtras().getInt("quality");
+        if (requestCode == 3403) {
+            int focus = -1;
+            if (data != null) {
+                if (data.getExtras() != null) {
+                    String iso = data.getStringExtra("iso");
+                    int quality = data.getExtras().getInt("quality");
+                    focus = data.getIntExtra("focus", -1);
 
-                this.duration = data.getExtras().getInt("duration");
-                default_quality = qualities[quality];
-                default_iso = iso;
+                    this.duration = data.getExtras().getInt("duration");
+                    default_quality = qualities[quality];
+                    default_iso = iso;
 
+                }
+            }
+            releaseCamera();
+            releaseMediaRecorder();
+            initCam();
 
-                releaseCamera();
-                releaseMediaRecorder();
-                initCam();
+            if (focus != -1) {
+                focusOnTouch(coords[focus][0],coords[focus][1],coords[focus][2],coords[focus][3]);
             }
         }
     }
@@ -308,6 +325,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 File videoFile = new File(filePath);
                 RequestBody videoBody = RequestBody.create(MediaType.parse("video/*"), videoFile);
                 MultipartBody.Part videoPart = MultipartBody.Part.createFormData("file", videoFile.getName(), videoBody);
+
                 if (videoId != -1) {
                     presenter.onVideoAddCalled(videoPart, videoId);
                 }
@@ -369,6 +387,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onVideoCreateSuccess(Integer id) {
         Log.d("LOGGERR", "onVideoCreateSuccess: ");
@@ -381,6 +400,40 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             initCam();
         }
     }
+
+    private void focusOnTouch(int left, int top, int right, int bottom) {
+        if (myCamera != null ) {
+
+            Camera.Parameters parameters = myCamera.getParameters();
+            if (parameters.getMaxNumMeteringAreas() > 0){
+                Log.i("LOGGERR","fancy !" + left + " " + top + " " + right + " " + bottom);
+                Rect rect = new Rect(left, top, right, bottom);
+
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
+                meteringAreas.add(new Camera.Area(rect, 800));
+                parameters.setFocusAreas(meteringAreas);
+
+                myCamera.setParameters(parameters);
+                myCamera.autoFocus(mAutoFocusTakePictureCallback);
+            }else {
+                myCamera.autoFocus(mAutoFocusTakePictureCallback);
+            }
+        }
+    }
+
+    private Camera.AutoFocusCallback mAutoFocusTakePictureCallback = new Camera.AutoFocusCallback() {
+        @Override
+        public void onAutoFocus(boolean success, Camera camera) {
+            if (success) {
+                // do something...
+                Log.i("tap_to_focus","success!");
+            } else {
+                // do something...
+                Log.i("tap_to_focus","fail!");
+            }
+        }
+    };
 
     @Override
     public void onVideoAddSuccess(AddingVideoResponse.Object videoObject) {
@@ -419,6 +472,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 return;
             }
 
+            Log.d("LOGGERR", "surfaceChanged: ");
+
             // stop preview before making changes
             try {
                 mCamera.stopPreview();
@@ -453,6 +508,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             // TODO Auto-generated method stub
 
         }
+
+
     }
 
 }

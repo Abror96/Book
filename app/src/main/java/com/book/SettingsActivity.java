@@ -28,7 +28,8 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
 
     private ActivitySettingsBinding binding;
     private String selected_iso = "";
-    private int selected_pos = -1;
+    private int selected_quality_pos = -1;
+    private int selected_focus_pos = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,10 +45,18 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
         binding.isoRecycler.setLayoutManager(layoutManager);
         binding.isoRecycler.setAdapter(new IsoAdapter(iso_values_arr));
 
+        // quality btns
         binding.tvUhd.setOnClickListener(this);
         binding.tvFhd.setOnClickListener(this);
         binding.tvHd.setOnClickListener(this);
         binding.tvNeHd.setOnClickListener(this);
+
+        // focus btns
+        binding.topLeft.setOnClickListener(this);
+        binding.topRight.setOnClickListener(this);
+        binding.bottomLeft.setOnClickListener(this);
+        binding.bottomRight.setOnClickListener(this);
+        binding.center.setOnClickListener(this);
 
     }
 
@@ -55,32 +64,73 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.tv_uhd:
-                selected_pos = 0;
+                selected_quality_pos = 0;
                 binding.tvUhd.setBackgroundColor(Color.parseColor("#dadada"));
                 binding.tvFhd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvHd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvNeHd.setBackgroundColor(Color.parseColor("#ffffff"));
                 break;
             case R.id.tv_fhd:
-                selected_pos = 1;
+                selected_quality_pos = 1;
                 binding.tvUhd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvFhd.setBackgroundColor(Color.parseColor("#dadada"));
                 binding.tvHd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvNeHd.setBackgroundColor(Color.parseColor("#ffffff"));
                 break;
             case R.id.tv_hd:
-                selected_pos = 2;
+                selected_quality_pos = 2;
                 binding.tvUhd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvFhd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvHd.setBackgroundColor(Color.parseColor("#dadada"));
                 binding.tvNeHd.setBackgroundColor(Color.parseColor("#ffffff"));
                 break;
             case R.id.tv_ne_hd:
-                selected_pos = 3;
+                selected_quality_pos = 3;
                 binding.tvUhd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvFhd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvHd.setBackgroundColor(Color.parseColor("#ffffff"));
                 binding.tvNeHd.setBackgroundColor(Color.parseColor("#dadada"));
+                break;
+                // focus buttons
+            case R.id.top_left:
+                selected_focus_pos = 0;
+                binding.topLeft.setBackgroundColor(Color.parseColor("#dadada"));
+                binding.topRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.center.setBackgroundColor(Color.parseColor("#ffffff"));
+                break;
+            case R.id.top_right:
+                selected_focus_pos = 1;
+                binding.topLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.topRight.setBackgroundColor(Color.parseColor("#dadada"));
+                binding.bottomLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.center.setBackgroundColor(Color.parseColor("#ffffff"));
+                break;
+            case R.id.bottom_left:
+                selected_focus_pos = 2;
+                binding.topLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.topRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomLeft.setBackgroundColor(Color.parseColor("#dadada"));
+                binding.bottomRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.center.setBackgroundColor(Color.parseColor("#ffffff"));
+                break;
+            case R.id.bottom_right:
+                selected_focus_pos = 3;
+                binding.topLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.topRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomRight.setBackgroundColor(Color.parseColor("#dadada"));
+                binding.center.setBackgroundColor(Color.parseColor("#ffffff"));
+                break;
+            case R.id.center:
+                selected_focus_pos = 4;
+                binding.topLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.topRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomLeft.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.bottomRight.setBackgroundColor(Color.parseColor("#ffffff"));
+                binding.center.setBackgroundColor(Color.parseColor("#dadada"));
                 break;
         }
     }
@@ -95,14 +145,15 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.save:
-                if (!selected_iso.equals("") && selected_pos != -1 && !binding.seconds.getText().toString().isEmpty()) {
+                if (!selected_iso.equals("") && selected_quality_pos != -1 && !binding.seconds.getText().toString().isEmpty() && selected_focus_pos != -1) {
                     int duration = Integer.valueOf(binding.seconds.getText().toString())*1000;
                     if (duration >= 10000 && duration <= 30000) {
-                        Log.d("LOGGERR", "save: " + selected_iso + " " + selected_pos);
+                        Log.d("LOGGERR", "save: " + selected_iso + " " + selected_quality_pos);
                         Intent intent = new Intent();
                         intent.putExtra("iso", selected_iso);
-                        intent.putExtra("quality", selected_pos);
+                        intent.putExtra("quality", selected_quality_pos);
                         intent.putExtra("duration", duration);
+                        intent.putExtra("focus", selected_focus_pos);
                         setResult(3030, intent);
                         finish();
                     } else {
