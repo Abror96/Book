@@ -181,10 +181,19 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.setting:
-                mediaRecorder.stop();  // stop the recording
-                releaseMediaRecorder();
-                releaseCamera();
-                startActivityForResult(new Intent(this, SettingsActivity.class), 3403);
+                try {
+                    if (mediaRecorder != null) {
+                        mediaRecorder.stop();  // stop the recording
+                        releaseMediaRecorder();
+                        releaseCamera();
+                        startActivityForResult(new Intent(this, SettingsActivity.class), 3403);
+                    } else {
+                        Snackbar.make(binding.mainView, "Проверьте подключение к серверу", Snackbar.LENGTH_LONG).show();
+                    }
+                } catch (IllegalStateException e) {
+                    Snackbar.make(binding.mainView, "Проверьте подключение к серверу", Snackbar.LENGTH_LONG).show();
+                    e.printStackTrace();
+                }
                 break;
         }
         return super.onOptionsItemSelected(item);
