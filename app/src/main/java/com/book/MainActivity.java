@@ -71,20 +71,21 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     private String filePath = "";
     private Camera.Parameters camParam;
 
-    private String values_keyword=null;
-    private String iso_keyword=null;
+//    private String values_keyword=null;
+//    private String iso_keyword=null;
     private SurfaceHolder surfaceHolder;
     boolean recording;
+    private boolean isServerAnswered = false;
     private int[] qualities = {
             CamcorderProfile.QUALITY_2160P,
             CamcorderProfile.QUALITY_1080P,
             CamcorderProfile.QUALITY_720P,
             CamcorderProfile.QUALITY_480P
     };
-    public static ArrayList<String> iso_values_arr;
+//    public static ArrayList<String> iso_values_arr;
     private int duration = 30000;
     private int default_quality = CamcorderProfile.QUALITY_480P;
-    private String default_iso = "auto";
+//    private String default_iso = "auto";
 
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private int[][] coords = {
@@ -137,9 +138,9 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         }
 
         camParam = myCamera.getParameters();
-        getIsoApiKey(camParam.flatten());
-        String supportedIsoValues = camParam.get(values_keyword);
-        iso_values_arr = new ArrayList<>(Arrays.asList(supportedIsoValues.split(",")));
+//        getIsoApiKey(camParam.flatten());
+//        String supportedIsoValues = camParam.get(values_keyword);
+//        iso_values_arr = new ArrayList<>(Arrays.asList(supportedIsoValues.split(",")));
 
 
 
@@ -183,10 +184,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             case R.id.setting:
                 try {
                     if (mediaRecorder != null) {
-                        mediaRecorder.stop();  // stop the recording
-                        releaseMediaRecorder();
-                        releaseCamera();
-                        startActivityForResult(new Intent(this, SettingsActivity.class), 3403);
+                        if (isServerAnswered) {
+                            Log.d("LOGGERR", "onOptionsItemSelected: " + mediaRecorder + " " + isServerAnswered);
+//                            mediaRecorder.stop();  // stop the recording
+                            releaseMediaRecorder();
+                            releaseCamera();
+                            startActivityForResult(new Intent(this, SettingsActivity.class), 3403);
+                        }
                     } else {
                         Snackbar.make(binding.mainView, "Проверьте подключение к серверу", Snackbar.LENGTH_LONG).show();
                     }
@@ -206,18 +210,18 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             int focus = -1;
             if (data != null) {
                 if (data.getExtras() != null) {
-                    String iso = data.getStringExtra("iso");
+//                    String iso = data.getStringExtra("iso");
                     int quality = data.getExtras().getInt("quality");
                     focus = data.getIntExtra("focus", -1);
 
                     this.duration = data.getExtras().getInt("duration");
                     default_quality = qualities[quality];
-                    default_iso = iso;
+//                    default_iso = iso;
 
                 }
             }
-            releaseCamera();
             releaseMediaRecorder();
+            releaseCamera();
             initCam();
 
             if (focus != -1) {
@@ -226,25 +230,26 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         }
     }
 
-    private void getIsoApiKey(String flat) {
-        if(flat.contains("iso-values")) {
-            // most used keywords
-            values_keyword="iso-values";
-            iso_keyword="iso";
-        } else if(flat.contains("iso-mode-values")) {
-            // google galaxy nexus keywords
-            values_keyword="iso-mode-values";
-            iso_keyword="iso";
-        } else if(flat.contains("iso-speed-values")) {
-            // micromax a101 keywords
-            values_keyword="iso-speed-values";
-            iso_keyword="iso-speed";
-        } else if(flat.contains("nv-picture-iso-values")) {
-            // LG dual p990 keywords
-            values_keyword="nv-picture-iso-values";
-            iso_keyword="nv-picture-iso";
-        }
-    }
+//    private void getIsoApiKey(String flat) {
+//        Log.d("LOGGERR", "getIsoApiKey: " + flat);
+//        if(flat.contains("iso-values")) {
+//            // most used keywords
+//            values_keyword="iso-values";
+//            iso_keyword="iso";
+//        } else if(flat.contains("iso-mode-values")) {
+//            // google galaxy nexus keywords
+//            values_keyword="iso-mode-values";
+//            iso_keyword="iso";
+//        } else if(flat.contains("iso-speed-values")) {
+//            // micromax a101 keywords
+//            values_keyword="iso-speed-values";
+//            iso_keyword="iso-speed";
+//        } else if(flat.contains("nv-picture-iso-values")) {
+//            // LG dual p990 keywords
+//            values_keyword="nv-picture-iso-values";
+//            iso_keyword="nv-picture-iso";
+//        }
+//    }
 
 
 
@@ -288,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         myCamera.setDisplayOrientation(90);
         mediaRecorder.setOrientationHint(90);
 
-        camParam.set(iso_keyword, default_iso);
+//        camParam.set(iso_keyword, default_iso);
         myCamera.setParameters(camParam);
 
         myCamera.unlock();
@@ -296,6 +301,10 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+
+//        for (int i = 0; i < camParam.getSupportedVideoSizes().size(); i++) {
+//            Log.d("LOGGERR", "prepareMediaRecorder: " + camParam.getSupportedVideoSizes().get(i).width + "x" + camParam.getSupportedVideoSizes().get(i).height);
+//        }
 
         mediaRecorder.setProfile(CamcorderProfile.get(default_quality));
 
@@ -352,6 +361,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 });
             }
         });
+
+
         return true;
 
     }
@@ -359,7 +370,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mediaRecorder != null) mediaRecorder.stop();  // stop the recording
+        if (mediaRecorder != null) {
+            try {
+                mediaRecorder.stop();  // stop the recording
+            } catch (IllegalStateException e) {
+                e.printStackTrace();
+            }
+        }
         releaseMediaRecorder(); // release the MediaRecorder object
     }
 
@@ -401,6 +418,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     public void onVideoCreateSuccess(Integer id) {
         Log.d("LOGGERR", "onVideoCreateSuccess: ");
         videoId = id;
+        isServerAnswered = true;
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -426,7 +444,11 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 myCamera.setParameters(parameters);
                 myCamera.autoFocus(mAutoFocusTakePictureCallback);
             }else {
-                myCamera.autoFocus(mAutoFocusTakePictureCallback);
+                try {
+                    myCamera.autoFocus(mAutoFocusTakePictureCallback);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

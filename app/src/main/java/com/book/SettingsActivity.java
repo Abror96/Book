@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.CamcorderProfile;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,14 +23,18 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 
-import static com.book.MainActivity.iso_values_arr;
-
 public class SettingsActivity extends AppCompatActivity implements View.OnClickListener {
 
     private ActivitySettingsBinding binding;
-    private String selected_iso = "";
+//    private String selected_iso = "";
     private int selected_quality_pos = -1;
     private int selected_focus_pos = -1;
+    private int[] qualities = {
+            CamcorderProfile.QUALITY_2160P,
+            CamcorderProfile.QUALITY_1080P,
+            CamcorderProfile.QUALITY_720P,
+            CamcorderProfile.QUALITY_480P
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,15 +45,28 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        LinearLayoutManager layoutManager
-                = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        binding.isoRecycler.setLayoutManager(layoutManager);
-        binding.isoRecycler.setAdapter(new IsoAdapter(iso_values_arr));
+//        LinearLayoutManager layoutManager
+//                = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+//        binding.isoRecycler.setLayoutManager(layoutManager);
+//        binding.isoRecycler.setAdapter(new IsoAdapter(iso_values_arr));
 
         // quality btns
+        Log.d("LOGGERR", "onCreate: " + CamcorderProfile.hasProfile(qualities[0]) + " " + CamcorderProfile.hasProfile(qualities[1]) + " " + CamcorderProfile.hasProfile(qualities[2]) + " " + CamcorderProfile.hasProfile(qualities[3]));
+        if (!CamcorderProfile.hasProfile(qualities[0])) {
+            binding.tvUhd.setVisibility(View.GONE);
+        }
         binding.tvUhd.setOnClickListener(this);
+        if (!CamcorderProfile.hasProfile(qualities[1])) {
+            binding.tvFhd.setVisibility(View.GONE);
+        }
         binding.tvFhd.setOnClickListener(this);
+        if (!CamcorderProfile.hasProfile(qualities[2])) {
+            binding.tvHd.setVisibility(View.GONE);
+        }
         binding.tvHd.setOnClickListener(this);
+        if (!CamcorderProfile.hasProfile(qualities[3])) {
+            binding.tvNeHd.setVisibility(View.GONE);
+        }
         binding.tvNeHd.setOnClickListener(this);
 
         // focus btns
@@ -145,12 +163,12 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.save:
-                if (!selected_iso.equals("") && selected_quality_pos != -1 && !binding.seconds.getText().toString().isEmpty() && selected_focus_pos != -1) {
+                if (/*!selected_iso.equals("") && */selected_quality_pos != -1 && !binding.seconds.getText().toString().isEmpty() && selected_focus_pos != -1) {
                     int duration = Integer.valueOf(binding.seconds.getText().toString())*1000;
                     if (duration >= 10000 && duration <= 30000) {
-                        Log.d("LOGGERR", "save: " + selected_iso + " " + selected_quality_pos);
+//                        Log.d("LOGGERR", "save: " + selected_iso + " " + selected_quality_pos);
                         Intent intent = new Intent();
-                        intent.putExtra("iso", selected_iso);
+//                        intent.putExtra("iso", selected_iso);
                         intent.putExtra("quality", selected_quality_pos);
                         intent.putExtra("duration", duration);
                         intent.putExtra("focus", selected_focus_pos);
@@ -170,56 +188,56 @@ public class SettingsActivity extends AppCompatActivity implements View.OnClickL
         return super.onOptionsItemSelected(item);
     }
 
-    class IsoAdapter extends RecyclerView.Adapter<IsoAdapter.IsoViewHolder> {
-
-        private ArrayList<String> isoList;
-        private int selectedPosition = -1;
-
-        public IsoAdapter(ArrayList<String> isoList) {
-            this.isoList = isoList;
-        }
-
-        @NonNull
-        @Override
-        public IsoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new IsoViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.iso_item, parent, false));
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull IsoViewHolder holder, int position) {
-            holder.textView.setText(getItem(position));
-            if (selectedPosition != position) {
-                holder.itemView.setBackgroundColor(Color.parseColor("#ffffff"));
-            } else {
-                holder.itemView.setBackgroundColor(Color.parseColor("#DADADA"));
-            }
-            holder.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    selected_iso = getItem(position);
-                    selectedPosition = position;
-                    notifyDataSetChanged();
-                }
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return isoList.size();
-        }
-
-        private String getItem(int position) {
-            return isoList.get(position);
-        }
-
-        class IsoViewHolder extends RecyclerView.ViewHolder {
-
-            TextView textView;
-
-            public IsoViewHolder(@NonNull View itemView) {
-                super(itemView);
-                textView = itemView.findViewById(R.id.tv_iso);
-            }
-        }
-    }
+//    class IsoAdapter extends RecyclerView.Adapter<IsoAdapter.IsoViewHolder> {
+//
+//        private ArrayList<String> isoList;
+//        private int selectedPosition = -1;
+//
+//        public IsoAdapter(ArrayList<String> isoList) {
+//            this.isoList = isoList;
+//        }
+//
+//        @NonNull
+//        @Override
+//        public IsoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+//            return new IsoViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.iso_item, parent, false));
+//        }
+//
+//        @Override
+//        public void onBindViewHolder(@NonNull IsoViewHolder holder, int position) {
+//            holder.textView.setText(getItem(position));
+//            if (selectedPosition != position) {
+//                holder.itemView.setBackgroundColor(Color.parseColor("#ffffff"));
+//            } else {
+//                holder.itemView.setBackgroundColor(Color.parseColor("#DADADA"));
+//            }
+//            holder.itemView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View view) {
+//                    selected_iso = getItem(position);
+//                    selectedPosition = position;
+//                    notifyDataSetChanged();
+//                }
+//            });
+//        }
+//
+//        @Override
+//        public int getItemCount() {
+//            return isoList.size();
+//        }
+//
+//        private String getItem(int position) {
+//            return isoList.get(position);
+//        }
+//
+//        class IsoViewHolder extends RecyclerView.ViewHolder {
+//
+//            TextView textView;
+//
+//            public IsoViewHolder(@NonNull View itemView) {
+//                super(itemView);
+//                textView = itemView.findViewById(R.id.tv_iso);
+//            }
+//        }
+//    }
 }
